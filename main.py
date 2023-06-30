@@ -129,3 +129,17 @@ def update_book(book_id: int, book: BookUpdate):
     guardar_cambios(PATH_DATOS, libros)
 
     return 'Libro actualizado.'
+
+@app.get("/titulo/{nombre}")
+def titulo(nombre: str):
+    for libro in libros:
+        if libro["title"] == nombre:
+            return libro
+
+@app.get("/pais/{nombre}")
+def paises(nombre: str):
+    paises = []
+    for libro in libros:
+        if libro["country"] == nombre:
+            paises.append(libro)
+    return paises
