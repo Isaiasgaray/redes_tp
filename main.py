@@ -41,12 +41,13 @@ def id_es_positivo(book_id):
                 status_code=404, 
                 detail='El id debe ser un número positivo.')
 
-# Busca un libro por su id,
-# si no lo encuntra devuelve none
+# Busca un libro por su id, si lo encuentra
+# devuelve su índice en la la lista y el
+# libro. Si no, devuelve None.
 def libro_por_id(book_id, libros):
-    for libro in libros:
+    for idx, libro in enumerate(libros):
         if libro['id'] == book_id:
-            return libro 
+            return idx, libro
     
     return None
 
@@ -72,7 +73,7 @@ def get_img(book_id: int):
     if not libro:
         error_libro_no_encontrado()
 
-    url_img = libro['imageLink']
+    url_img = libro[1]['imageLink']
     img = open(url_img, 'rb')
 
     return StreamingResponse(img, media_type='image/png')
@@ -81,14 +82,14 @@ def get_img(book_id: int):
 @app.post('/libros')
 def add_book(book: Book):
 
-    nuevo_libro = book.dict()    
+    libro_actualizado = book.dict()    
 
     ultimo_id = libros[-1]['id']
 
-    nuevo_libro['id'] = ultimo_id + 1
-    nuevo_libro['imageLink'] = None
+    libro_actualizado['id'] = ultimo_id + 1
+    libro_actualizado['imageLink'] = None
 
-    libros.append(nuevo_libro)
+    libros.append(libro_actualizado)
 
     guardar_cambios(PATH_DATOS, libros)
 
@@ -102,8 +103,8 @@ def delete_book(book_id: int):
     if not libro:
         error_libro_no_encontrado()
 
-    libro_titulo = libro['title']
-    libros.remove(libro)
+    libro_titulo = libro[1]['title']
+    libros.remove(libro[1])
 
     guardar_cambios(PATH_DATOS, libros)
 
@@ -111,4 +112,20 @@ def delete_book(book_id: int):
 
 @app.put('/libros/{book_id}')
 def update_book(book_id: int, book: BookUpdate):
-    return book.dict()
+
+    idx, libro = get_libro(book_id, libros)
+
+    if not libro:
+        error_libro_no_encontrado()
+
+    libro_actualizado = book.dict()
+
+    claves_no_vacias = [key for key in libro_actualizado 
+                        if libro_actualizado[key]]
+
+    for clave in claves_no_vacias:
+        libros[idx][clave] = libro_actualizado[clave]
+
+    guardar_cambios(PATH_DATOS, libros)
+
+    return 'Libro actualizado.'
