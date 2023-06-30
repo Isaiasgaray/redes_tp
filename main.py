@@ -24,6 +24,41 @@ class Book(BaseModel):
     title:     str
     year:      int  | None
 
+class BookUpdate(Book):
+    author: str | None
+    title:  str | None
+
+# Función para guardar los cambios
+# en el archivo.
+def guardar_cambios(archivo, datos):
+    with open(archivo, 'w') as f:
+        json.dump(datos, f)
+
+# Controla que el id sea positivo.
+def id_es_positivo(book_id):
+    if book_id <= 0:
+        raise HTTPException(
+                status_code=404, 
+                detail='El id debe ser un número positivo.')
+
+# Busca un libro por su id,
+# si no lo encuntra devuelve none
+def libro_por_id(book_id, libros):
+    for libro in libros:
+        if libro['id'] == book_id:
+            return libro 
+    
+    return None
+
+def error_libro_no_encontrado():
+    raise HTTPException(
+                status_code=404,
+                detail='Libro no encontrado.'
+                )
+
+def get_libro(book_id, libros):
+    id_es_positivo(book_id)
+    return libro_por_id(book_id, libros)
 
 @app.get('/')
 def root():
@@ -32,25 +67,10 @@ def root():
 @app.get('/img')
 def get_img(book_id: int):
 
-    if book_id <= 0:
-        raise HTTPException(
-                status_code=404, 
-                detail='El id es un número positivo.'
-                )
-
-    libro = None
-
-    for lib in libros:
-        if lib['id'] == book_id:
-            libro = lib
-            break 
-            
+    libro = get_libro(book_id, libros)
+                         
     if not libro:
-        raise HTTPException(
-            status_code=404,
-            detail='Libro no encontrado'
-            )
-
+        error_libro_no_encontrado()
 
     url_img = libro['imageLink']
     img = open(url_img, 'rb')
@@ -70,40 +90,25 @@ def add_book(book: Book):
 
     libros.append(nuevo_libro)
 
-    with open(PATH_DATOS, 'w') as f:
-        json.dump(libros, f)    
-    
+    guardar_cambios(PATH_DATOS, libros)
+
     return f'Libro \'{book.title}\' agregado.'
 
 @app.delete('/libros/{book_id}')
 def delete_book(book_id: int):
     
-    if book_id <= 0:
-        raise HTTPException(
-                status_code=404, 
-                detail='El id es un número positivo.'
-                )
-
-    
-    libro = None
-
-    for lib in libros:
-        if lib['id'] == book_id:
-            libro = lib
-            break 
+    libro = get_libro(book_id, libros)
             
     if not libro:
-        raise HTTPException(
-            status_code=404,
-            detail='Libro no encontrado'
-            )
+        error_libro_no_encontrado()
 
     libro_titulo = libro['title']
-
     libros.remove(libro)
 
-    with open(PATH_DATOS, 'w') as f:
-        json.dump(libros, f)    
+    guardar_cambios(PATH_DATOS, libros)
 
     return f'Libro \'{libro_titulo}\' eliminado.'
 
+@app.put('/libros/{book_id}')
+def update_book(book_id: int, book: BookUpdate):
+    return book.dict()
