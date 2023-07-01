@@ -8,6 +8,8 @@ app = FastAPI()
 
 PATH_DATOS = 'books.json'
 
+BASE_URL = '/libros'
+
 # Cargamos el json en memoria
 with open(PATH_DATOS) as f:
     libros = json.load(f)
@@ -65,7 +67,28 @@ def get_libro(book_id, libros):
 def root():
     return libros
 
-@app.get('/img')
+@app.get(BASE_URL + '/titulo/{nombre}')
+def titulo(nombre: str):
+    nombre = nombre.capitalize()
+    for libro in libros:
+        if libro["title"] == nombre:
+            return libro
+
+@app.get(BASE_URL + '/pais/{nombre}')
+def paises(nombre: str):
+    nombre = nombre.capitalize()
+    paises = []
+    for libro in libros:
+        if libro["country"] == nombre:
+            paises.append(libro)
+    return paises
+
+@app.get(BASE_URL + '/lenguaje/{leng}')
+def lenguaje(leng: str):
+    leng = leng.capitalize()
+    return [libro for libro in libros if libro['language'] == leng]
+
+@app.get(BASE_URL + '/img')
 def get_img(book_id: int):
 
     libro = get_libro(book_id, libros)
@@ -79,7 +102,7 @@ def get_img(book_id: int):
     return StreamingResponse(img, media_type='image/png')
 
 
-@app.post('/libros')
+@app.post(BASE_URL)
 def add_book(book: Book):
 
     libro_actualizado = book.dict()    
@@ -95,22 +118,22 @@ def add_book(book: Book):
 
     return f'Libro \'{book.title}\' agregado.'
 
-@app.delete('/libros/{book_id}')
+@app.delete(BASE_URL + '/{book_id}')
 def delete_book(book_id: int):
     
-    libro = get_libro(book_id, libros)
+    idx, libro = get_libro(book_id, libros)
             
     if not libro:
         error_libro_no_encontrado()
 
-    libro_titulo = libro[1]['title']
-    libros.remove(libro[1])
+    libro_titulo = libro['title']
+    libros.remove(libro)
 
     guardar_cambios(PATH_DATOS, libros)
 
     return f'Libro \'{libro_titulo}\' eliminado.'
 
-@app.put('/libros/{book_id}')
+@app.put(BASE_URL + '/{book_id}')
 def update_book(book_id: int, book: BookUpdate):
 
     idx, libro = get_libro(book_id, libros)
@@ -130,16 +153,3 @@ def update_book(book_id: int, book: BookUpdate):
 
     return 'Libro actualizado.'
 
-@app.get("/titulo/{nombre}")
-def titulo(nombre: str):
-    for libro in libros:
-        if libro["title"] == nombre:
-            return libro
-
-@app.get("/pais/{nombre}")
-def paises(nombre: str):
-    paises = []
-    for libro in libros:
-        if libro["country"] == nombre:
-            paises.append(libro)
-    return paises
