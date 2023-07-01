@@ -41,14 +41,14 @@ while True:
     elif opcion == "3":
         # Ver imagen del libro c:\Users\USER\Downloads
         book_id = int(input("Ingrese el ID del libro: "))
-        response = requests.get(f"{url}/img/{book_id}")
-
-        if response.status_code == 200:
-                libro = response.content
-
-                
-        else:
-                print("No se encontró la imagen del libro.")
+        titulo = input("Ingresa el nonbre del archivo: ")
+        
+        response = requests.get(f"http://localhost:8000/img?book_id={book_id}", stream=True)
+        
+        with open(f"{titulo}.jpg", "wb") as file:
+            for lib in response.iter_content():
+                file.write(lib)
+        response.close()  
 
     elif opcion == "4":
         # Modificar libro
